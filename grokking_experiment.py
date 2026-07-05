@@ -21,7 +21,7 @@ from torch.utils.data import TensorDataset, DataLoader
 
 # Optional AMP imports (graceful fallback if not available)
 try:
-    from torch.cuda.amp import autocast, GradScaler
+    from torch.amp import autocast, GradScaler
     AMP_AVAILABLE = True
 except ImportError:
     AMP_AVAILABLE = False
@@ -209,7 +209,7 @@ def run_experiment(args):
 
         # === Forward pass with Automatic Mixed Precision ===
         if use_amp:
-            with autocast():
+            with autocast(device_type='cuda'):
                 logits = model(batch_in)
                 loss = criterion(logits, batch_lab)
 
