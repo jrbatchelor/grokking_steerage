@@ -213,20 +213,115 @@ def run_experiment(args):
                 logits = model(batch_in)
                 loss = criterion(logits, batch_lab)
 
-            # AMP backward pass
-            scaler.scale(loss).backward()
+            # === Steerage Mechanisms (must be inside autocast for AMP) ===
+            # (All steerage code that was previously after backward is now here)
 
-            # Optional gradient clipping (helps stability with AMP)
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-
-            scaler.step(optimizer)
-            scaler.update()
         else:
-            # Standard precision path (for reproducibility or CPU)
             logits = model(batch_in)
             loss = criterion(logits, batch_lab)
 
+        # === Steerage Mechanisms (outside autocast block for clarity) ===
+        # Mirror-Closure
+        if getattr(args, 'use_mirror_closure', False):
+            sym_errors = []
+            for name, param in model.named_parameters():
+                if param.requires_grad and param.ndim == 2 and 'weight' in name:
+                    if param.shape[0] == param.shape[1]:
+                        err = torch.norm(param - param.t()) / (param.numel() ** 0.5 + 1e-8)
+                        sym_errors.append(err)
+            if sym_errors:
+                avg_sym = torch.stack(sym_errors).mean()
+                loss = loss + getattr(args, 'mirror_lambda', 0.01) * avg_sym
+
+        # Polarity Gradient Steering
+        if getattr(args, 'use_polarity_steering', False):
+            with torch.no_grad():
+                emb = model.embed(batch_in)
+                flat = emb.view(emb.size(0), -1)
+                hidden = model.net(flat).detach()
+            if not hasattr(args, '_polarity_anomaly_ema'):
+                args._polarity_anomaly_ema = hidden.mean(dim=0)
+                args._polarity_resolution_ema = hidden.mean(dim=0)
+            if step > 2000:
+                beta = 0.99
+                args._polarity_anomaly_ema   = beta * args._polarity_anomaly_ema   + (1 - beta) * hidden.mean(dim=0)
+                args._polarity_resolution_ema = beta * args._polarity_resolution_ema + (1 - beta) * hidden.mean(dim=0)
+                direction = args._polarity_resolution_ema - args._polarity_anomaly_ema
+                direction = direction / (direction.norm() + 1e-8)
+                proj = (hidden @ direction).mean()
+                loss = loss + getattr(args, 'polarity_lambda', 0.05) * (-proj)
+
+        # Internal Multi-Agent Mirror Closure
+        if getattr(args, 'use_internal_mirror_closure', False):
+            with torch.no_grad():
+                emb = model.embed(batch_in)
+                flat = emb.view(emb.size(0), -1)
+                hidden = model.net(flat).detach()
+            views = []
+            num_agents = getattr(args, 'num_internal_agents', 4)
+            for _ in range(num_agents):
+                noise = torch.randn_like(hidden) * 0.01
+                view = hidden + noise
+                views.append(view)
+            views = torch.stack(views)
+            mean_view = views.mean(dim=0)
+            consistency_loss = sum(F.mse_loss(views[i], mean_view) for i in range(num_agents))
+            mirror_closure_loss = consistency_loss / num_agents
+            loss = loss + getattr(args, 'internal_mirror_lambda', 0.05) * mirror_closure_loss
+
+        # Epistemic Self-Improvement Loss
+        if getattr(args, 'use_epistemic_self_improvement', False):
+            if step >= getattr(args, 'epistemic_start_step', 2000):
+                with torch.no_grad():
+                    emb = model.embed(batch_in)
+                    flat = emb.view(emb.size(0), -1)
+                    hidden = model.net(flat).detach()
+                if (not hasattr(args, '_epistemic_target_ema') or
+                        args._epistemic_target_ema.shape != hidden.shape):
+                    args._epistemic_target_ema = hidden.clone()
+                beta = getattr(args, 'epistemic_ema_beta', 0.995)
+                args._epistemic_target_ema = beta * args._epistemic_target_ema + (1 - beta) * hidden
+                if args._epistemic_target_ema.shape == hidden.shape:
+                    loss = loss + getattr(args, 'epistemic_lambda', 0.03) * F.mse_loss(hidden, args._epistemic_target_ema)
+
+        # Polarity Navigation Regularization
+        if getattr(args, 'use_polarity_navigation', False):
+            if step >= 3000:
+                with torch.no_grad():
+                    emb = model.embed(batch_in)
+                    flat = emb.view(emb.size(0), -1)
+                    hidden = model.net(flat).detach()
+                    noise_strong = torch.randn_like(hidden) * getattr(args, 'polarity_noise_strong', 0.15)
+                    noise_weak   = torch.randn_like(hidden) * getattr(args, 'polarity_noise_weak', 0.02)
+                    view_emp = hidden + noise_weak
+                    view_ded = hidden + noise_strong
+                    W = model.fc_out.weight.detach()
+                    b = model.fc_out.bias.detach() if model.fc_out.bias is not None else None
+                    loss_emp_val = float(criterion(F.linear(view_emp, W, b), batch_lab))
+                    loss_ded_val = float(criterion(F.linear(view_ded, W, b), batch_lab))
+                    polarity_loss_val = abs(loss_emp_val - loss_ded_val)
+                loss = loss + getattr(args, 'polarity_navigation_lambda', 0.02) * polarity_loss_val
+
+        # Holonomy Regularization (occasional)
+        if args.use_holonomy_reg and (step + 1) % getattr(args, 'holonomy_check_interval', 100) == 0:
+            with torch.no_grad():
+                emb = model.embed(batch_in)
+                flat = emb.view(emb.size(0), -1)
+                hidden = model.net(flat)
+                noise = 0.01 * torch.randn_like(hidden)
+                perturbed = hidden + noise
+            expansion = (perturbed - hidden).norm(dim=1).mean() / (noise.norm(dim=1).mean() + 1e-8)
+            if expansion > getattr(args, 'holonomy_target', 0.95):
+                loss = loss + args.holonomy_lambda * (expansion - getattr(args, 'holonomy_target', 0.95))**2
+
+        # === Backward pass (only once, after all terms are added) ===
+        if use_amp:
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
             loss.backward()
             optimizer.step()
 
@@ -312,8 +407,38 @@ def run_experiment(args):
                     epistemic_loss = F.mse_loss(hidden, args._epistemic_target_ema)
                     loss = loss + getattr(args, 'epistemic_lambda', 0.03) * epistemic_loss
 
-                epistemic_loss = F.mse_loss(hidden, args._epistemic_target_ema)
-                loss = loss + getattr(args, 'epistemic_lambda', 0.03) * epistemic_loss
+        # === Polarity Navigation Regularization ===
+        if getattr(args, 'use_polarity_navigation', False):
+            if step >= 3000:  # Start after early memorization phase
+                # Compute auxiliary losses in a completely isolated way.
+                # We manually perform the linear transform using detached weights
+                # so there is ZERO connection to the main autograd graph.
+                with torch.no_grad():
+                    emb = model.embed(batch_in)
+                    flat = emb.view(emb.size(0), -1)
+                    hidden = model.net(flat).detach()
+
+                    # Create two views with different noise levels
+                    noise_strong = torch.randn_like(hidden) * getattr(args, 'polarity_noise_strong', 0.15)
+                    noise_weak   = torch.randn_like(hidden) * getattr(args, 'polarity_noise_weak', 0.02)
+
+                    view_empirical = hidden + noise_weak
+                    view_deductive = hidden + noise_strong
+
+                    # Manual linear transform using detached weights
+                    W = model.fc_out.weight.detach()          # shape: [p, hidden_dim]
+                    b = model.fc_out.bias.detach() if model.fc_out.bias is not None else None
+
+                    logits_emp = F.linear(view_empirical, W, b)
+                    logits_ded = F.linear(view_deductive, W, b)
+
+                    loss_emp_val = float(criterion(logits_emp, batch_lab))
+                    loss_ded_val = float(criterion(logits_ded, batch_lab))
+
+                    polarity_loss_val = abs(loss_emp_val - loss_ded_val)
+
+                # Add as a plain Python float (zero gradient, zero graph)
+                loss = loss + getattr(args, 'polarity_navigation_lambda', 0.02) * polarity_loss_val
 
         if args.use_holonomy_reg and (step + 1) % getattr(args, 'holonomy_check_interval', 100) == 0:
             with torch.no_grad():
@@ -435,6 +560,12 @@ if __name__ == "__main__":
     parser.add_argument("--epistemic_lambda", type=float, default=0.03)
     parser.add_argument("--epistemic_ema_beta", type=float, default=0.995)
     parser.add_argument("--epistemic_start_step", type=int, default=2000)
+
+    # Polarity Navigation Regularization
+    parser.add_argument("--use_polarity_navigation", action="store_true")
+    parser.add_argument("--polarity_navigation_lambda", type=float, default=0.02)
+    parser.add_argument("--polarity_noise_strong", type=float, default=0.15)
+    parser.add_argument("--polarity_noise_weak", type=float, default=0.02)
 
     # === Performance Optimization Arguments ===
     parser.add_argument("--batch_size", type=int, default=512,

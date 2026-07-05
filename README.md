@@ -1,10 +1,10 @@
 # Grokking Ablation Experiments
 
-This project provides a framework for systematically testing how six **steerage mechanisms** (Mirror-Closure, Polarity Gradient Steering, Holonomy Regularization, Stabilizer Modules, Internal Multi-Agent Mirror Closure, and Epistemic Self-Improvement Loss) affect **grokking** behavior in neural networks.
+This project provides a framework for systematically testing how seven **steerage mechanisms** (Mirror-Closure, Polarity Gradient Steering, Holonomy Regularization, Stabilizer Modules, Internal Multi-Agent Mirror Closure, Epistemic Self-Improvement Loss, and Polarity Navigation Regularization) affect **grokking** behavior in neural networks.
 
 It also tracks **Benford’s Law** metrics on model weights as a potential signal of internal reorganization during the grokking transition.
 
-## The Six Steerage Mechanisms
+## The Seven Steerage Mechanisms
 
 | Mechanism | Description |
 |-----------|-------------|
@@ -14,6 +14,7 @@ It also tracks **Benford’s Law** metrics on model weights as a potential signa
 | **Stabilizer Module** | Residual coherence block (`x + MLP(x)`) that helps maintain internal consistency during training. |
 | **Internal Multi-Agent Mirror Closure** | Internal consistency regularization via multi-view agent agreement. Multiple noisy views of hidden activations are generated; their mean is treated as a consensus target, and each view is pulled toward it via MSE loss. This encourages internal representational stability without external supervision. |
 | **Epistemic Self-Improvement Loss** | Maintains an EMA target of hidden representations and pulls current hidden states toward this slowly improving internal target (post-memorization), encouraging self-referential epistemic improvement. |
+| **Polarity Navigation Regularization** | Penalizes imbalance between empirical and deductive views by creating two noisy versions of the hidden state (weak noise = empirical, strong noise = deductive), computing auxiliary losses on both, and adding `\|Loss_empirical − Loss_deductive\|` as a regularizer. Encourages the model to maintain balanced performance across different levels of representational robustness. |
 
 ## Project Structure
 

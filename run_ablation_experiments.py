@@ -80,6 +80,23 @@ def get_experimental_conditions() -> Dict[str, Dict[str, Any]]:
             "epistemic_ema_beta": 0.995,
             "epistemic_start_step": 2000,
         },
+        "full_steerage_v3": {
+            "use_polarity_steering": True,
+            "use_holonomy_reg": True,
+            "use_stabilizer": True,
+            "use_mirror_closure": True,
+            "use_internal_mirror_closure": True,
+            "use_epistemic_self_improvement": True,
+            "use_polarity_navigation": True,
+            "num_internal_agents": 4,
+            "internal_mirror_lambda": 0.05,
+            "epistemic_lambda": 0.03,
+            "epistemic_ema_beta": 0.995,
+            "epistemic_start_step": 2000,
+            "polarity_navigation_lambda": 0.02,
+            "polarity_noise_strong": 0.15,
+            "polarity_noise_weak": 0.02,
+        },
     }
 
 
