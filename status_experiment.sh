@@ -2,7 +2,8 @@
 # status_experiment.sh
 # One-line summary of the running grokking ablation experiment
 
-RESULTS_DIR="results_2026-07-03_4condition_125seeds_v1-v2_fixed"
+# Default to the most recent combined results folder if none specified
+RESULTS_DIR="${RESULTS_DIR:-results_2026-07-03_4condition_125seeds_FINAL}"
 LOG_FILE="$RESULTS_DIR/experiment.log"
 
 # If no log file exists yet, try to find recent output

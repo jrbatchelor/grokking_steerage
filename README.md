@@ -22,16 +22,18 @@ It also tracks **Benford’s Law** metrics on model weights as a potential signa
 grokking_experiment/
 ├── grokking_experiment.py          # Core training engine (returns structured metrics + history)
 ├── run_ablation_experiments.py     # Ablation orchestrator (multi-condition, multi-seed)
+├── run_parallel_seeds.py           # Parallel seed runner (torch.multiprocessing)
+├── status_experiment.sh            # One-line experiment progress monitor
 ├── requirements.txt
 ├── README.md
-└── ablation_results/               # Auto-generated
+└── results_*/                      # Auto-generated (date-stamped folders)
     ├── baseline/
     │   └── seed_*/
+    ├── full_steerage_v1/
     ├── full_steerage/
     ├── full_steerage_v2/
-    │   └── seed_*/
-    ├── all_results.csv
-    ├── summary.csv
+    ├── full_steerage_v3/           # Includes Polarity Navigation Regularization
+    ├── FINAL_summary.csv
     ├── stats_*.csv
     └── plot_*.png
 ```
@@ -57,24 +59,37 @@ This will:
 - Run statistical comparisons (Mann-Whitney U + effect sizes)
 - Generate comparison plots
 
-### 1b. Run the Exact 4-Condition Incremental Study Set
+### 1b. Run the Exact 5-Condition Incremental Study Set
 
 This matches the planned progression exactly:
 - `baseline`: no steerage mechanisms
 - `full_steerage_v1`: original four mechanisms
 - `full_steerage`: v1 + Internal Multi-Agent Mirror Closure
 - `full_steerage_v2`: full_steerage + Epistemic Self-Improvement Loss
+- `full_steerage_v3`: v2 + **Polarity Navigation Regularization** (new)
 
 ```bash
 python3 run_ablation_experiments.py \
-  --conditions baseline full_steerage_v1 full_steerage full_steerage_v2 \
+  --conditions baseline full_steerage_v1 full_steerage full_steerage_v2 full_steerage_v3 \
   --num_seeds 80
 ```
 
 ### 2. Run Specific Conditions
 
 ```bash
-python3 run_ablation_experiments.py --conditions baseline full_steerage_v1 full_steerage full_steerage_v2 --num_seeds 3
+python3 run_ablation_experiments.py --conditions baseline full_steerage_v3 --num_seeds 3
+```
+
+### 2b. Run Multiple Seeds in Parallel (High Throughput)
+
+```bash
+python3 run_parallel_seeds.py \
+  --conditions baseline full_steerage_v3 \
+  --num_seeds 30 \
+  --parallel 3 \
+  --batch_size 512 \
+  --use_amp \
+  --results_dir ./results_parallel
 ```
 
 ### 3. Run a Single Experiment Directly
@@ -93,6 +108,14 @@ python grokking_experiment.py \
   --internal_mirror_lambda 0.05 \
   --use_epistemic_self_improvement \
   --epistemic_lambda 0.03 \
+  --use_polarity_navigation \
+  --polarity_navigation_lambda 0.02 \
+  --polarity_noise_strong 0.15 \
+  --polarity_noise_weak 0.02 \
+  --batch_size 512 \
+  --use_amp \
+  --compile_model
+```
   --epistemic_ema_beta 0.995 \
   --epistemic_start_step 2000
 ```

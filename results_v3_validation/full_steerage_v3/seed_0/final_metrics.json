@@ -1,0 +1,6 @@
+{
+  "final_test_acc": 0.9988405704498291,
+  "steps_to_0.5": 6500,
+  "steps_to_0.9": 7000,
+  "weight_norm_reduction": 0.6260348348120439
+}
