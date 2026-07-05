@@ -27,24 +27,23 @@ from typing import Dict, Any
 from grokking_experiment import run_experiment
 
 
-def run_single_seed(
-    seed: int,
-    condition_name: str,
-    condition_args: Dict[str, Any],
-    base_args: argparse.Namespace,
-    results_dir: Path
-) -> Dict[str, Any]:
+def _run_single_seed_task(task):
     """
-    Run a single seed for a given condition.
-    This function is designed to be called in a separate process.
+    Top-level task runner to avoid pickling issues with local functions.
+    task = (seed, condition_name, condition_args, base_args, results_dir)
     """
     import copy
+    seed, condition_name, condition_args, base_args, results_dir = task
 
-    # Create a fresh argument namespace for this seed
     args = copy.deepcopy(base_args)
     for k, v in condition_args.items():
         setattr(args, k, v)
     args.seed = seed
+
+    # Pool workers are daemonic and cannot spawn DataLoader worker processes.
+    # The dataset is tiny (p^2 rows), so num_workers=0 costs nothing here.
+    args.num_workers = 0
+    args.persistent_workers = False
 
     run_dir = results_dir / condition_name / f"seed_{seed}"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -54,13 +53,10 @@ def run_single_seed(
 
     try:
         history = run_experiment(args)
-
-        # Compute metrics
         from run_ablation_experiments import compute_grokking_metrics
         metrics = compute_grokking_metrics(history)
         metrics.update({"condition": condition_name, "seed": seed})
 
-        # Save results
         import numpy as np
         np.savez(run_dir / "history.npz", **{
             k: v for k, v in history.items() if isinstance(v, (list, np.ndarray))
@@ -70,7 +66,6 @@ def run_single_seed(
 
         print(f"[PID {mp.current_process().pid}] ✓ Completed: {condition_name} seed {seed}")
         return metrics
-
     except Exception as e:
         print(f"[PID {mp.current_process().pid}] ✗ ERROR in {condition_name} seed {seed}: {e}")
         error_info = {"condition": condition_name, "seed": seed, "error": str(e)}
@@ -172,6 +167,23 @@ def main():
             "epistemic_ema_beta": 0.995,
             "epistemic_start_step": 2000,
         },
+        "full_steerage_v3": {
+            "use_polarity_steering": True,
+            "use_holonomy_reg": True,
+            "use_stabilizer": True,
+            "use_mirror_closure": True,
+            "use_internal_mirror_closure": True,
+            "use_epistemic_self_improvement": True,
+            "use_polarity_navigation": True,
+            "num_internal_agents": 4,
+            "internal_mirror_lambda": 0.05,
+            "epistemic_lambda": 0.03,
+            "epistemic_ema_beta": 0.995,
+            "epistemic_start_step": 2000,
+            "polarity_navigation_lambda": 0.02,
+            "polarity_noise_strong": 0.15,
+            "polarity_noise_weak": 0.02,
+        },
     }
 
     # Validate conditions
@@ -204,22 +216,12 @@ def main():
 
     print(f"Total tasks: {len(tasks)}")
 
-    # Run tasks in parallel
-    # We use a process pool with the specified number of workers
-    run_fn = partial(
-        run_single_seed,
-        base_args=args,
-        results_dir=results_dir
-    )
-
-    # Note: We pass (condition_name, condition_args, seed) as a tuple
-    # so we need to adjust the wrapper
-    def task_wrapper(task):
-        cond_name, cond_args, seed = task
-        return run_fn(seed=seed, condition_name=cond_name, condition_args=cond_args)
+    # Build task list as tuples for the top-level function
+    task_list = [(seed, cond_name, cond_args, args, results_dir)
+                 for cond_name, cond_args, seed in tasks]
 
     with mp.Pool(processes=args.parallel) as pool:
-        results = pool.map(task_wrapper, tasks)
+        results = pool.map(_run_single_seed_task, task_list)
 
     print(f"\n{'='*70}")
     print(f"ALL TASKS COMPLETED")
