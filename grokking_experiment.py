@@ -234,7 +234,7 @@ def run_experiment(args):
             mirror_closure_loss = consistency_loss / num_agents
             loss = loss + getattr(args, 'internal_mirror_lambda', 0.05) * mirror_closure_loss
 
-        # Epistemic Self-Improvement Loss
+        # Epistemic Self-Improvement Loss (fixed: robust shape handling)
         if getattr(args, 'use_epistemic_self_improvement', False):
             if step >= getattr(args, 'epistemic_start_step', 2000):
                 with torch.no_grad():
@@ -242,13 +242,20 @@ def run_experiment(args):
                     flat = emb.view(emb.size(0), -1)
                     hidden = model.net(flat).detach()
 
-                if not hasattr(args, '_epistemic_target_ema'):
+                # Initialize or reset EMA target if shape mismatch
+                if (not hasattr(args, '_epistemic_target_ema') or
+                        args._epistemic_target_ema.shape != hidden.shape):
                     args._epistemic_target_ema = hidden.clone()
 
                 beta = getattr(args, 'epistemic_ema_beta', 0.995)
                 args._epistemic_target_ema = (
                     beta * args._epistemic_target_ema + (1 - beta) * hidden
                 )
+
+                # Only compute loss if shapes match
+                if args._epistemic_target_ema.shape == hidden.shape:
+                    epistemic_loss = F.mse_loss(hidden, args._epistemic_target_ema)
+                    loss = loss + getattr(args, 'epistemic_lambda', 0.03) * epistemic_loss
 
                 epistemic_loss = F.mse_loss(hidden, args._epistemic_target_ema)
                 loss = loss + getattr(args, 'epistemic_lambda', 0.03) * epistemic_loss

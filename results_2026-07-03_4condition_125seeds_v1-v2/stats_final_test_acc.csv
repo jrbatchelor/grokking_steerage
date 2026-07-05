@@ -1,0 +1,4 @@
+comparison,metric,p_value,effect_size,significant
+baseline vs full_steerage,final_test_acc,0.0023,-0.072,True
+baseline vs full_steerage_v1,final_test_acc,0.0023,-0.072,True
+full_steerage vs full_steerage_v1,final_test_acc,1.0,0.0,False

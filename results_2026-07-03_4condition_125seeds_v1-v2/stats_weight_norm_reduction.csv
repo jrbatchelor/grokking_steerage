@@ -1,0 +1,4 @@
+comparison,metric,p_value,effect_size,significant
+baseline vs full_steerage,weight_norm_reduction,0.0,0.9443,True
+baseline vs full_steerage_v1,weight_norm_reduction,0.0,0.9443,True
+full_steerage vs full_steerage_v1,weight_norm_reduction,1.0,0.0,False
