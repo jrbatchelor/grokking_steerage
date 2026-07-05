@@ -1,0 +1,11 @@
+{
+  "final_test_acc": 1.0,
+  "final_test_loss": 7.36535321266274e-06,
+  "steps_to_0.5": 8500,
+  "steps_to_0.9": 9500,
+  "weight_norm_reduction": 0.6990534798639315,
+  "benford_chi2_reduction": 0.9301757387074296,
+  "p1_change": 0.13496898525293666,
+  "condition": "baseline",
+  "seed": 45
+}

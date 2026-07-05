@@ -1,0 +1,5 @@
+,final_test_acc,final_test_acc,steps_to_0.9,steps_to_0.9,weight_norm_reduction,weight_norm_reduction,benford_chi2_reduction,benford_chi2_reduction
+,mean,std,mean,std,mean,std,mean,std
+condition,,,,,,,,
+baseline,1.0,0.0,9112.0,846.8728,0.688,0.0153,0.9162,0.0493
+full_steerage_v3,0.9994,0.0037,7914.6341,658.1996,0.7256,0.0371,0.8934,0.0957
