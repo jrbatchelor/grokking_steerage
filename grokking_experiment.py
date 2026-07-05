@@ -19,6 +19,15 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 
+# Optional AMP imports (graceful fallback if not available)
+try:
+    from torch.cuda.amp import autocast, GradScaler
+    AMP_AVAILABLE = True
+except ImportError:
+    AMP_AVAILABLE = False
+    autocast = None
+    GradScaler = None
+
 
 # ----------------------------- Utilities -----------------------------
 def set_seed(seed: int):
@@ -139,9 +148,21 @@ def run_experiment(args):
         args.p, args.train_frac, args.seed
     )
 
+    # Optimized DataLoader settings for RTX 3060
+    batch_size = getattr(args, 'batch_size', 512)  # Increased default for better GPU utilization
+    num_workers = getattr(args, 'num_workers', 8)
+    persistent_workers = getattr(args, 'persistent_workers', True) and num_workers > 0
+
     train_ds = TensorDataset(train_in, train_lab)
-    train_loader = DataLoader(train_ds, batch_size=128, shuffle=True,
-                              num_workers=4, pin_memory=True)
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
+        persistent_workers=persistent_workers,
+        prefetch_factor=4 if num_workers > 0 else None
+    )
     train_iter = cycle(train_loader)
 
     model = GrokkingMLP(
@@ -154,6 +175,19 @@ def run_experiment(args):
 
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wd)
     criterion = nn.CrossEntropyLoss()
+
+    # === Automatic Mixed Precision (AMP) Setup ===
+    use_amp = getattr(args, 'use_amp', True) and device.type == 'cuda' and AMP_AVAILABLE
+    scaler = GradScaler() if use_amp else None
+
+    if use_amp:
+        print(f"[OPTIMIZATION] Using Automatic Mixed Precision (AMP) for faster training")
+    if getattr(args, 'compile_model', False):
+        try:
+            model = torch.compile(model)
+            print(f"[OPTIMIZATION] Model compiled with torch.compile()")
+        except Exception as e:
+            print(f"[WARNING] torch.compile() failed: {e}")
 
     # History tracking
     history = {
@@ -172,8 +206,29 @@ def run_experiment(args):
         batch_in, batch_lab = batch_in.to(device), batch_lab.to(device)
 
         optimizer.zero_grad()
-        logits = model(batch_in)
-        loss = criterion(logits, batch_lab)
+
+        # === Forward pass with Automatic Mixed Precision ===
+        if use_amp:
+            with autocast():
+                logits = model(batch_in)
+                loss = criterion(logits, batch_lab)
+
+            # AMP backward pass
+            scaler.scale(loss).backward()
+
+            # Optional gradient clipping (helps stability with AMP)
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            # Standard precision path (for reproducibility or CPU)
+            logits = model(batch_in)
+            loss = criterion(logits, batch_lab)
+
+            loss.backward()
+            optimizer.step()
 
         # === Steerage Mechanisms ===
 
@@ -380,6 +435,18 @@ if __name__ == "__main__":
     parser.add_argument("--epistemic_lambda", type=float, default=0.03)
     parser.add_argument("--epistemic_ema_beta", type=float, default=0.995)
     parser.add_argument("--epistemic_start_step", type=int, default=2000)
+
+    # === Performance Optimization Arguments ===
+    parser.add_argument("--batch_size", type=int, default=512,
+                        help="Training batch size (default: 512 for better GPU utilization)")
+    parser.add_argument("--num_workers", type=int, default=8,
+                        help="DataLoader num_workers (default: 8)")
+    parser.add_argument("--use_amp", action="store_true", default=True,
+                        help="Enable Automatic Mixed Precision (default: True on CUDA)")
+    parser.add_argument("--compile_model", action="store_true",
+                        help="Compile model with torch.compile() for extra speed (PyTorch 2.0+)")
+    parser.add_argument("--persistent_workers", action="store_true", default=True,
+                        help="Use persistent workers in DataLoader (default: True)")
 
     args = parser.parse_args()
     result = run_experiment(args)

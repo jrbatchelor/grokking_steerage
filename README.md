@@ -116,6 +116,45 @@ After running experiments, the `ablation_results/` folder will contain:
 | `weight_norm_reduction` | Measure of simplicity bias |
 | `benford_chi2_reduction` | Improvement in parameter distribution quality |
 
+## Performance Tuning (RTX 3060 / Modern GPUs)
+
+For maximum GPU utilization during long ablation studies, use these optimizations:
+
+```bash
+python grokking_experiment.py \
+  --batch_size 512 \
+  --num_workers 8 \
+  --use_amp \
+  --compile_model
+```
+
+**Key Flags:**
+
+| Flag | Default | Effect |
+|------|---------|--------|
+| `--batch_size 512` | 512 | Larger batches improve GPU occupancy |
+| `--num_workers 8` | 8 | Parallel data loading (match to CPU cores) |
+| `--use_amp` | True | Automatic Mixed Precision (~2× faster on RTX 30-series) |
+| `--compile_model` | False | PyTorch 2.0+ graph compilation (+10–20% speedup) |
+
+**Expected speedup:** ~2.5–3× faster training vs default settings on RTX 3060.
+
+### Parallel Seed Execution
+
+For even higher throughput, use the parallel seed runner:
+
+```bash
+python run_parallel_seeds.py \
+  --conditions baseline full_steerage_v2 \
+  --num_seeds 30 \
+  --parallel 3 \
+  --batch_size 512 \
+  --use_amp \
+  --results_dir ./results_parallel
+```
+
+This runs 3 seeds simultaneously on the same GPU using `torch.multiprocessing`.
+
 ## Author
 
 **Jonathan "Batch" Batchelor**
