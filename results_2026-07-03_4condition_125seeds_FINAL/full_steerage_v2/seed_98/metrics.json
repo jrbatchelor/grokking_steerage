@@ -1,0 +1,11 @@
+{
+  "final_test_acc": 0.37835749983787537,
+  "final_test_loss": 2.2186684608459473,
+  "steps_to_0.5": 6500,
+  "steps_to_0.9": 8000,
+  "weight_norm_reduction": 0.7451304314769042,
+  "benford_chi2_reduction": 0.9573990371655584,
+  "p1_change": 0.16478009392647225,
+  "condition": "full_steerage_v2",
+  "seed": 98
+}
