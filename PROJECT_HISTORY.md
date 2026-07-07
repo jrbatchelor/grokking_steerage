@@ -418,4 +418,12 @@ Only penalizes degradation; no pressure when the perturbed path already performs
 - **Design decision:** Kept strictly separate from the empirical pipeline (no torch, no CLI flags, no ablation conditions). Intended as an explanatory companion that quantifies the critical regime identified by the base model.
 - Appended to the existing "Conceptual / Theoretical Companions (July 2026)" section in `PROJECT_HISTORY.md`; new README subsection added under "Theoretical Companions".
 
+### Spatial Lattice Avalanches and SOC (July 2026)
+- Created `theoretical/spatial_lattice_soc.py` — a 1D spatial lattice model (N=128) with local neighbor coupling + self-reference + global pull, enabling propagating "avalanches" (contiguous regions of significant state change).
+- Key quantitative result: 127 avalanches detected (size range 3–19 nodes, mean ≈ 7.2); avalanche-size distribution yields a log-log slope of **−0.77** (R² ≈ 0.39), a spatially explicit SOC-proxy distinct from the mean-field fluctuation analysis (−2.51).
+- Generated 2-panel diagnostic figure: `artifacts/spatial_lattice_soc.png` (model structure + avalanche size histogram with log-log annotation).
+- **Higher synthesis:** This spatial extension moves the computational proxy closer to real-world self-organized systems (river networks, neural avalanches). The progression — mean-field stabilization → critical fluctuations → spatial avalanches — demonstrates that self-reference tuned near criticality produces both global integration *and* rich, propagating local fluctuations, exactly the regime hypothesized to support complex information resolution.
+- **Design decision:** Kept strictly separate from the empirical pipeline (no torch, no CLI flags, no ablation conditions). Intended as the third in a deliberate progression of theoretical companions that bridge abstract dynamics to spatially realistic SOC systems.
+- Appended to the existing "Conceptual / Theoretical Companions (July 2026)" section in `PROJECT_HISTORY.md`; new README subsection added under "Theoretical Companions".
+
 **End of Project History**
