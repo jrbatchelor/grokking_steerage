@@ -434,4 +434,13 @@ Only penalizes degradation; no pressure when the perturbed path already performs
 - **Design decision:** Kept strictly separate from the empirical pipeline (no torch, no CLI flags, no ablation conditions). Intended as the fourth in a deliberate progression of theoretical companions that bridge abstract dynamics to spatially realistic SOC systems.
 - Appended to the existing "Conceptual / Theoretical Companions (July 2026)" section in `PROJECT_HISTORY.md`; new README subsection added under "Theoretical Companions".
 
+### 2D Lattice with Evolutionary Reinforcement — Selection for Integrative Nodes (July 2026)
+- Created `theoretical/2d_lattice_evolutionary.py` — an evolutionary extension of the 2D lattice (32×32) where nodes that participate in large avalanches (min size = 6) receive a small, cumulative boost (`REINFORCEMENT = 0.008`) to their per-node `local_coupling` strength.
+- Key quantitative result: 23 avalanches detected (size range 6–505 nodes, mean ≈ 32.5); the model produces heterogeneous coupling maps and amplifies heavy-tailed avalanche statistics.
+- Generated 4-panel diagnostic figure: `artifacts/2d_lattice_evolutionary.png` (final state, evolved local coupling map, avalanche-size histogram, node participation count).
+- **Connection to Epistemic Self-Improvement Loss (mechanism #6):** This evolutionary mechanism is a minimal dynamical analogue of the EMA-based self-improvement target. Nodes that contribute to large, integrative events are “rewarded” with stronger local coupling — a simple selection pressure that directly parallels the transformer implementation. The model thus closes the loop between the theoretical companions and the eight steerage mechanisms.
+- **Five-model progression & higher synthesis:** The arc — mean-field stabilization → critical fluctuations → 1D spatial avalanches → 2D spatial avalanches → 2D evolutionary reinforcement — demonstrates that self-reference tuned near criticality, when augmented with even simple self-improvement rules, naturally generates both global coherence and rich, spatially structured fluctuations, the regime hypothesized to support complex information resolution.
+- **Design decision:** Kept strictly separate from the empirical pipeline (no torch, no CLI flags, no ablation conditions). Intended as the fifth in a deliberate progression of theoretical companions that now explicitly bridge to the steerage mechanisms.
+- Appended to the existing "Conceptual / Theoretical Companions (July 2026)" section in `PROJECT_HISTORY.md`; new README subsection added under "Theoretical Companions".
+
 **End of Project History**

@@ -92,6 +92,19 @@ This 2D formulation allows coherence changes to propagate in two spatial dimensi
 
 The sequence from mean-field stabilization through critical-fluctuation analysis to 1D and finally 2D spatial lattices demonstrates a clear progression: increasing spatial dimensionality and local connectivity yields progressively more realistic avalanche statistics. The 2D model produces scale-free-like distributions with a heavier tail and genuine propagating events, providing the strongest computational proxy yet for real-world self-organized systems while still exhibiting global coherence. This reinforces the core finding that self-reference tuned near criticality generates both integration and rich, spatially structured fluctuations — exactly the regime hypothesized to support complex information resolution.
 
+### 2D Lattice with Evolutionary Reinforcement — Selection for Integrative Nodes
+
+**File:** `2d_lattice_evolutionary.py`  
+**Location:** `artifacts/2d_lattice_evolutionary.png`
+
+An evolutionary extension of the 2D lattice (32×32 grid) adds a simple **self-improvement / selection dynamic**: each node maintains its own `local_coupling` strength, which increases by a small amount (`REINFORCEMENT = 0.008`) every time it participates in a sufficiently large avalanche (minimum size = 6 nodes). Over 2000 steps, 23 avalanches were detected (size range 6–505 nodes, mean ≈ 32.5). The model produces heterogeneous coupling maps and amplifies heavy-tailed avalanche statistics.
+
+This evolutionary mechanism is a minimal dynamical analogue of the **Epistemic Self-Improvement Loss** (mechanism #6) in the main project. Nodes that contribute to large, integrative events are “rewarded” with stronger local coupling — a simple selection pressure that parallels the EMA-based self-improvement target in the transformer experiments. The four-panel figure (final state, evolved local coupling map, avalanche-size distribution, participation count) visually demonstrates how selection pressure shapes spatial heterogeneity while preserving global coherence.
+
+**Five-Model Progression & Closing the Loop**
+
+The five companions now form a deliberate arc: mean-field stabilization → mean-field SOC fluctuations → 1D spatial avalanches → 2D spatial avalanches → 2D evolutionary reinforcement. The final model closes the loop between the theoretical companions and the eight steerage mechanisms by directly implementing a selection dynamic that mirrors Epistemic Self-Improvement Loss. This reinforces that self-reference tuned near criticality, when augmented with even simple self-improvement rules, naturally generates both global coherence and rich, spatially structured fluctuations — the regime hypothesized to support complex information resolution.
+
 ## Project Structure
 
 ```
