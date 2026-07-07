@@ -50,6 +50,22 @@ This minimal system demonstrates how **self-referential amplification + coherenc
 
 The model is deliberately minimal (pure NumPy, ~80 lines) so that hypotheses about mechanism interactions can be explored quickly before implementation in `grokking_experiment.py`.
 
+### SOC Signatures at Critical Self-Reference
+
+**File:** `self_ref_soc_extension.py`  
+**Location:** `artifacts/self_ref_soc_extension.png`
+
+An 8000-step extension run at the critical self-reference value (`sr = 1.60`) reveals persistent intermittent fluctuations in the global mean state. Fluctuation sizes (absolute changes in the population mean) exhibit a heavy-tailed distribution; a log-log histogram of binned event sizes yields a power-law proxy slope of approximately **−2.51** (R² ≈ 0.62).
+
+This behavior is consistent with systems operating near a critical point, where self-referential feedback tuned to the "edge of stability" generates rich, intermittent dynamics rather than rapid collapse to a fixed state. Such regimes are hypothesized to support complex information processing and "resolver-like" behavior in information networks.
+
+**Key Observations**
+- 667 significant fluctuations detected above threshold (|Δmean| > 0.015)
+- Fluctuation-size tail extends to ≈ 0.061 (≈ 4× the threshold)
+- Log-log slope ≈ −2.51 provides a quantitative SOC-proxy signature
+
+The attached four-panel figure shows the late-time global coherence trace, the fluctuation-size histogram, the log-log power-law fit, and an interpretive summary linking the critical regime to self-referential physics.
+
 ## Project Structure
 
 ```

@@ -410,4 +410,12 @@ Only penalizes degradation; no pressure when the perturbed path already performs
 - **Design decision:** Kept completely separate from the empirical pipeline — no torch dependency, no CLI flags, no ablation conditions. Intended as a rapid hypothesis sandbox and explanatory companion.
 - File moved from project root → `theoretical/` directory; `.gitignore` updated to ignore `theoretical/__pycache__/`.
 
+### SOC Signatures at Critical Self-Reference (July 2026)
+- Created `theoretical/self_ref_soc_extension.py` — an 8000-step extension of the base stabilization model run at the critical point (`sr = 1.60`).
+- Key quantitative result: 667 significant fluctuations detected; fluctuation-size distribution exhibits a heavy tail; log-log histogram yields a power-law proxy slope of **−2.51** (R² ≈ 0.62).
+- Generated four-panel diagnostic figure: `artifacts/self_ref_soc_extension.png` (global coherence trace, size histogram, log-log fit, interpretive summary).
+- **Interpretation:** At the critical self-reference strength the system enters a regime of persistent intermittent fluctuations rather than rapid collapse, consistent with self-organized criticality (SOC) proxies. This provides a minimal dynamical illustration of how "edge-of-stability" tuning can support rich, heavy-tailed dynamics hypothesized to enable complex information processing and resolver-like behavior.
+- **Design decision:** Kept strictly separate from the empirical pipeline (no torch, no CLI flags, no ablation conditions). Intended as an explanatory companion that quantifies the critical regime identified by the base model.
+- Appended to the existing "Conceptual / Theoretical Companions (July 2026)" section in `PROJECT_HISTORY.md`; new README subsection added under "Theoretical Companions".
+
 **End of Project History**
