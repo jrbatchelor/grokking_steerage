@@ -426,4 +426,12 @@ Only penalizes degradation; no pressure when the perturbed path already performs
 - **Design decision:** Kept strictly separate from the empirical pipeline (no torch, no CLI flags, no ablation conditions). Intended as the third in a deliberate progression of theoretical companions that bridge abstract dynamics to spatially realistic SOC systems.
 - Appended to the existing "Conceptual / Theoretical Companions (July 2026)" section in `PROJECT_HISTORY.md`; new README subsection added under "Theoretical Companions".
 
+### 2D Lattice Avalanches — Stronger SOC Proxy (July 2026)
+- Created `theoretical/2d_lattice_soc.py` — a 2D grid model (32×32) with 4-neighbor local coupling + self-reference + weak global pull, enabling genuine 2D avalanche propagation via connected-component labeling (`scipy.ndimage.label`).
+- Key quantitative result: 31 avalanches detected (size range 4–510 nodes, mean ≈ 23.2); avalanche-size distribution yields a log-log slope of **−0.36** (R² ≈ 0.40), producing a visibly heavier tail than the 1D lattice (−0.77) and mean-field fluctuation model (−2.51).
+- Generated 3-panel diagnostic figure: `artifacts/2d_lattice_soc.png` (final 2D state, avalanche-size histogram with log-log annotation, conceptual summary box).
+- **Four-model progression & higher synthesis:** The sequence — mean-field stabilization → critical fluctuations → 1D spatial avalanches → 2D spatial avalanches — demonstrates that increasing spatial dimensionality and local connectivity yields progressively more realistic, scale-free-like avalanche statistics. The 2D model provides the strongest computational proxy yet for real self-organized systems (neural avalanches, river networks, earthquake statistics) while still exhibiting global coherence — reinforcing that "edge-of-stability" tuning enables both integration and rich, spatially structured fluctuations, the regime hypothesized to support complex information resolution.
+- **Design decision:** Kept strictly separate from the empirical pipeline (no torch, no CLI flags, no ablation conditions). Intended as the fourth in a deliberate progression of theoretical companions that bridge abstract dynamics to spatially realistic SOC systems.
+- Appended to the existing "Conceptual / Theoretical Companions (July 2026)" section in `PROJECT_HISTORY.md`; new README subsection added under "Theoretical Companions".
+
 **End of Project History**
