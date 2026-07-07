@@ -28,6 +28,9 @@ env/
 # Large result directories and logs
 ablation_results/
 ablation_results_*/
+
+# Theoretical companion models (pure NumPy/Matplotlib, no torch)
+theoretical/__pycache__/
 results/
 *.log
 *.npz

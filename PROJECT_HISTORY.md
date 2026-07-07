@@ -327,4 +327,87 @@ This 250-seed study provides **definitive statistical validation** of the full 7
 
 ---
 
+---
+
+## Phase 10: Regenerative / Resilience Regularization — Mechanism #8 (July 5, 2026)
+
+### Design & Motivation
+- **Name:** Regenerative / Resilience Regularization
+- **Core Idea:** Explicitly train the model to **maintain task performance** even when internal representations are perturbed or degraded — a direct implementation of resilience concepts from complex systems.
+- **Key Distinction:** Unlike consistency-focused mechanisms (Mirror-Closure, Internal Multi-Agent Mirror Closure), this mechanism is **outcome-oriented**: it penalizes degradation in task loss under controlled perturbation of hidden states.
+- **Theoretical Alignment:** Extends the Mirror Principle into fault-tolerant / regenerative behavior; complements Polarity Navigation (both maintain function across internal state variations).
+
+### Implementation Details
+
+**New CLI Flags (added to `grokking_experiment.py` and `run_ablation_experiments.py`):**
+```bash
+--use_resilience_reg
+--resilience_lambda 0.01
+--resilience_noise_level 0.05
+--resilience_start_step 3000
+```
+
+**Training-Loop Block (inserted after Polarity Navigation, before Holonomy):**
+```python
+if getattr(args, 'use_resilience_reg', False):
+    if step >= getattr(args, 'resilience_start_step', 3000):
+        with torch.no_grad():
+            emb = model.embed(batch_in)
+            flat = emb.view(emb.size(0), -1)
+            hidden = model.net(flat).detach()
+        noise_level = getattr(args, 'resilience_noise_level', 0.05)
+        perturbed = hidden + torch.randn_like(hidden) * noise_level
+        perturbed_logits = model.fc_out(perturbed)
+        perturbed_loss = criterion(perturbed_logits, batch_lab)
+        resilience_loss = torch.relu(perturbed_loss - loss.detach())
+        loss = loss + getattr(args, 'resilience_lambda', 0.01) * resilience_loss
+```
+
+**Loss Formulation (Option A — recommended):**  
+`resilience_loss = relu(perturbed_loss − clean_loss)`  
+Only penalizes degradation; no pressure when the perturbed path already performs well.
+
+### New Experimental Condition: `full_steerage_v4`
+- Enables all 7 prior mechanisms + `use_resilience_reg=True`.
+- Registered in:
+  - `run_ablation_experiments.py` → `get_experimental_conditions()`
+  - `run_parallel_seeds.py` → conditions dictionary
+- Defaults: `resilience_lambda=0.01`, `resilience_noise_level=0.05`, `resilience_start_step=3000`.
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `grokking_experiment.py` | 4 new argparse flags + resilience training-loop block |
+| `run_ablation_experiments.py` | 4 new argparse flags + `full_steerage_v4` condition |
+| `run_parallel_seeds.py` | `full_steerage_v4` condition entry |
+| `README.md` | Updated to "Eight Steerage Mechanisms"; added mechanism description + `full_steerage_v4/` folder note |
+
+### Branch & Repository
+- **Feature branch:** `feature/resilience-regularization` (created 2026-07-05)
+- **Commit history:** Isolated from `main`; ready for PR review.
+- **GitHub:** https://github.com/jrbatchelor/grokking_steerage/tree/feature/resilience-regularization
+
+### Next Recommended Actions
+1. **Verification run (3 seeds):**
+   ```bash
+   python run_ablation_experiments.py \
+     --conditions baseline full_steerage_v3 full_steerage_v4 \
+     --num_seeds 3 \
+     --results_dir ./resilience_v4_validation
+   ```
+2. Inspect `stats_steps_to_0.9.csv` and plots for any marginal benefit of the resilience term.
+3. If promising, schedule a full 125-seed `full_steerage_v4` study using `run_parallel_seeds.py`.
+
+---
+
+## Conceptual / Theoretical Companions (July 2026)
+
+### Self-Referential Stabilization Model
+- Created `theoretical/self_ref_stabilization.py` — a minimal 64-node polarity network (pure NumPy) demonstrating emergent phase-transition behavior under tunable self-reference strength (`sr`).
+- The model exhibits a sharp stability/coherence transition near `sr ≈ 1.6`, providing a dynamical-systems intuition for the self-referential and polarity-coherence mechanisms in the main transformer experiments.
+- Generated diagnostic plot: `artifacts/self_ref_phase_transition.png`.
+- **Conceptual mapping table** (self-reference ↔ Epistemic Self-Improvement; polarity pull ↔ Polarity Gradient Steering / Polarity Navigation; variance collapse ↔ Stabilizer + Mirror-Closure + Holonomy) added to README.
+- **Design decision:** Kept completely separate from the empirical pipeline — no torch dependency, no CLI flags, no ablation conditions. Intended as a rapid hypothesis sandbox and explanatory companion.
+- File moved from project root → `theoretical/` directory; `.gitignore` updated to ignore `theoretical/__pycache__/`.
+
 **End of Project History**
