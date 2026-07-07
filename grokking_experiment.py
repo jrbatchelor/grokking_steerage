@@ -302,6 +302,27 @@ def run_experiment(args):
                     polarity_loss_val = abs(loss_emp_val - loss_ded_val)
                 loss = loss + getattr(args, 'polarity_navigation_lambda', 0.02) * polarity_loss_val
 
+        # === Regenerative / Resilience Regularization (Mechanism #8) ===
+        if getattr(args, 'use_resilience_reg', False):
+            if step >= getattr(args, 'resilience_start_step', 3000):
+                with torch.no_grad():
+                    emb = model.embed(batch_in)
+                    flat = emb.view(emb.size(0), -1)
+                    hidden = model.net(flat).detach()
+
+                # Apply controlled perturbation to hidden state
+                noise_level = getattr(args, 'resilience_noise_level', 0.05)
+                perturbed = hidden + torch.randn_like(hidden) * noise_level
+
+                # Compute task loss on the perturbed representation
+                perturbed_logits = model.fc_out(perturbed)
+                perturbed_loss = criterion(perturbed_logits, batch_lab)
+
+                # Resilience loss: penalize degradation in performance (Option A)
+                resilience_loss = torch.relu(perturbed_loss - loss.detach())
+
+                loss = loss + getattr(args, 'resilience_lambda', 0.01) * resilience_loss
+
         # Holonomy Regularization (occasional)
         if args.use_holonomy_reg and (step + 1) % getattr(args, 'holonomy_check_interval', 100) == 0:
             with torch.no_grad():
@@ -438,6 +459,12 @@ if __name__ == "__main__":
     parser.add_argument("--polarity_navigation_lambda", type=float, default=0.02)
     parser.add_argument("--polarity_noise_strong", type=float, default=0.15)
     parser.add_argument("--polarity_noise_weak", type=float, default=0.02)
+
+    # Regenerative / Resilience Regularization (Mechanism #8)
+    parser.add_argument("--use_resilience_reg", action="store_true")
+    parser.add_argument("--resilience_lambda", type=float, default=0.01)
+    parser.add_argument("--resilience_noise_level", type=float, default=0.05)
+    parser.add_argument("--resilience_start_step", type=int, default=3000)
 
     # === Performance Optimization Arguments ===
     parser.add_argument("--batch_size", type=int, default=512,

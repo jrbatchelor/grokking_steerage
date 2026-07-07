@@ -184,6 +184,27 @@ def main():
             "polarity_noise_strong": 0.15,
             "polarity_noise_weak": 0.02,
         },
+        "full_steerage_v4": {
+            "use_polarity_steering": True,
+            "use_holonomy_reg": True,
+            "use_stabilizer": True,
+            "use_mirror_closure": True,
+            "use_internal_mirror_closure": True,
+            "use_epistemic_self_improvement": True,
+            "use_polarity_navigation": True,
+            "use_resilience_reg": True,
+            "num_internal_agents": 4,
+            "internal_mirror_lambda": 0.05,
+            "epistemic_lambda": 0.03,
+            "epistemic_ema_beta": 0.995,
+            "epistemic_start_step": 2000,
+            "polarity_navigation_lambda": 0.02,
+            "polarity_noise_strong": 0.15,
+            "polarity_noise_weak": 0.02,
+            "resilience_lambda": 0.01,
+            "resilience_noise_level": 0.05,
+            "resilience_start_step": 3000,
+        },
     }
 
     # Validate conditions

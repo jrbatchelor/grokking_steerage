@@ -1,0 +1,4 @@
+comparison,metric,p_value,effect_size,significant
+baseline vs full_steerage_v3,benford_chi2_reduction,0.1,1.0,False
+baseline vs full_steerage_v4,benford_chi2_reduction,0.1,1.0,False
+full_steerage_v3 vs full_steerage_v4,benford_chi2_reduction,0.2,0.7778,False

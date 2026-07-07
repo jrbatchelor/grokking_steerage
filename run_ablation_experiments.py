@@ -97,6 +97,27 @@ def get_experimental_conditions() -> Dict[str, Dict[str, Any]]:
             "polarity_noise_strong": 0.15,
             "polarity_noise_weak": 0.02,
         },
+        "full_steerage_v4": {
+            "use_polarity_steering": True,
+            "use_holonomy_reg": True,
+            "use_stabilizer": True,
+            "use_mirror_closure": True,
+            "use_internal_mirror_closure": True,
+            "use_epistemic_self_improvement": True,
+            "use_polarity_navigation": True,
+            "use_resilience_reg": True,
+            "num_internal_agents": 4,
+            "internal_mirror_lambda": 0.05,
+            "epistemic_lambda": 0.03,
+            "epistemic_ema_beta": 0.995,
+            "epistemic_start_step": 2000,
+            "polarity_navigation_lambda": 0.02,
+            "polarity_noise_strong": 0.15,
+            "polarity_noise_weak": 0.02,
+            "resilience_lambda": 0.01,
+            "resilience_noise_level": 0.05,
+            "resilience_start_step": 3000,
+        },
     }
 
 
@@ -315,6 +336,12 @@ def main():
     parser.add_argument("--epistemic_lambda", type=float, default=0.03)
     parser.add_argument("--epistemic_ema_beta", type=float, default=0.995)
     parser.add_argument("--epistemic_start_step", type=int, default=2000)
+
+    # Regenerative / Resilience Regularization (Mechanism #8)
+    parser.add_argument("--use_resilience_reg", action="store_true")
+    parser.add_argument("--resilience_lambda", type=float, default=0.01)
+    parser.add_argument("--resilience_noise_level", type=float, default=0.05)
+    parser.add_argument("--resilience_start_step", type=int, default=3000)
 
     args = parser.parse_args()
 
